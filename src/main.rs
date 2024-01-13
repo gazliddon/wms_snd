@@ -44,7 +44,7 @@ fn main() {
     for _i in 0..100 {
         let pc = machine.regs.pc as usize;
 
-        let d = diss(machine.mem(), pc, &DBASE);
+        let d = diss(machine.mem(), pc);
 
         if let Ok(d) = d {
             println!( "{d}");
