@@ -5,15 +5,13 @@ mod pia;
 mod wmsboard;
 
 use emu6800::{
-    cpu::{diss, Machine, RegisterFile},
+    cpu::{decoder::print_it, diss, CpuResult, Machine, RegisterFile},
     emucore,
 };
 
 use emucore::mem;
-
-use wmsboard::{WmsBoard, *};
-
 use mem::{MemResult, MemoryIO};
+use wmsboard::{WmsBoard, *};
 
 pub type WmsMachine = Machine<WmsBoard, RegisterFile>;
 
@@ -32,30 +30,49 @@ pub struct Runner {
     cycle: usize,
 }
 
+fn step(machine: &mut WmsMachine, num: usize) -> CpuResult<()> {
+    use emu6800::cpu::StepResult::*;
+
+    for _ in 0..num {
+        if !machine.about_to_interrupt() {
+            let pc = machine.regs.pc;
+            {
+                let d = machine.diss(pc.into());
+
+                if let Ok(d) = d {
+                    println!("\n{d}");
+                } else {
+                    println!(
+                        "Uknown: {pc:04x} : {:02x}",
+                        machine.mem().inspect_byte(pc as usize).unwrap()
+                    );
+                    break;
+                }
+            }
+        }
+
+        let ret = machine.step().unwrap();
+
+        match ret {
+            Irq(pc) => println!("IRQ -> 0x{pc:04x}"),
+            Reset(pc) => println!("RES -> 0x{pc:04x}"),
+            Nmi(pc) => println!("NMI -> 0x{pc:04x}"),
+            Step { .. } => {
+                println!("{}", machine.regs);
+            }
+        }
+    }
+    Ok(())
+}
+
 fn main() {
     let prog = include_bytes!("../resources/sg.snd");
     let mut board = wmsboard::WmsBoard::new();
     board.upload_rom(prog).unwrap();
 
     let mut machine = WmsMachine::new(board, RegisterFile::default());
-
-    machine.reset().unwrap();
-
-    for _i in 0..100 {
-        let pc = machine.regs.pc as usize;
-
-        let d = diss(machine.mem(), pc);
-
-        if let Ok(d) = d {
-            println!( "{d}");
-        } else {
-            println!(
-                "Uknown: {pc:04x} : {:02x}",
-                machine.mem().inspect_byte(pc as usize).unwrap()
-            );
-            break;
-        }
-
-        machine.step().unwrap();
-    }
+    machine.reset();
+    step(&mut machine, 100).unwrap();
+    machine.irq();
+    step(&mut machine, 10000000).unwrap();
 }
