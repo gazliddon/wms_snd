@@ -24,8 +24,15 @@ impl Pia {
     pub fn write(&mut self, a: u8, v: u8) {
         self.last_written[a as usize] = v;
     }
-    pub fn read(&mut self, _a: u8) -> u8 {
-        0
+
+    pub fn read(&mut self, a: u8) -> u8 {
+        let r = self.last_written[a as usize];
+        r
+    }
+
+    pub fn inspect(&self, a: u8) -> u8 {
+        let r = self.last_written[a as usize];
+        r
     }
 }
 

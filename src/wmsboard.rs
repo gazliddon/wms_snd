@@ -7,7 +7,7 @@ const ROM_SIZE: u16 = 0x800;
 const ROM_LAST: u16 = ROM_BASE.wrapping_add(ROM_SIZE).wrapping_sub(1);
 
 const RAM_BASE: u16 = 0x0;
-const RAM_SIZE: u16 = 0x80;
+const RAM_SIZE: u16 = 0x100;
 const RAM_LAST: u16 = RAM_BASE.wrapping_add(RAM_SIZE).wrapping_sub(1);
 
 pub struct WmsBoard {
@@ -26,10 +26,34 @@ impl Default for WmsBoard {
     }
 }
 
+impl WmsBoard { 
+    pub fn get_dac(&self) -> u8 {
+        self.inspect_pia_u8(0).unwrap()
+    }
+
+    pub fn set_sfx(&mut self, val: u8) {
+        self.write_pia_u8(1, val).unwrap();
+        self.write_pia_u8(2, val).unwrap();
+    }
+
+    pub fn inspect_pia_u8(&self, _addr: u16) -> MemResult<u8> {
+        Ok( self.pia.inspect((_addr & 0xff) as u8) )
+    }
+    pub fn read_pia_u8(&mut self, _addr: u16) -> MemResult<u8> {
+        Ok( self.pia.read((_addr & 0xff) as u8) )
+    }
+
+    pub fn write_pia_u8(&mut self, _addr: u16, _val: u8) -> MemResult<()> {
+        self.pia.write((_addr & 0xff) as u8, _val);
+        Ok(())
+    }
+}
+
 impl WmsBoard {
     pub fn new() -> Self {
         Self::default()
     }
+
 
     pub fn upload_rom(&mut self, src: &[u8]) -> MemResult<()> {
         if src.len() > ROM_SIZE.into() {
@@ -70,9 +94,6 @@ impl WmsBoard {
         }
     }
 
-    pub fn inspect_pia_u8(&self, _addr: u16) -> MemResult<u8> {
-        Ok(0)
-    }
 
     pub fn inspect_ram_u8(&self, addr: u16) -> MemResult<u8> {
         Ok(self.ram[addr as usize])
@@ -82,9 +103,6 @@ impl WmsBoard {
         Ok(self.rom[addr as usize])
     }
 
-    pub fn read_pia_u8(&mut self, _addr: u16) -> MemResult<u8> {
-        Ok(0)
-    }
 
     pub fn read_ram_u8(&mut self, addr: u16) -> MemResult<u8> {
         Ok(self.ram[addr as usize])
@@ -94,9 +112,6 @@ impl WmsBoard {
         Ok(self.rom[addr as usize])
     }
 
-    pub fn write_pia_u8(&mut self, _addr: u16, _val: u8) -> MemResult<()> {
-        Ok(())
-    }
 
     pub fn write_ram_u8(&mut self, addr: u16, val: u8) -> MemResult<()> {
         self.ram[addr as usize] = val;
