@@ -8,14 +8,12 @@ mod runner;
 
 use emu6800::{
     cpu::{
-        decoder::print_it, CpuResult, CpuState, Machine, RegisterFile, StepResult, StepResult::*,
+        CpuResult, Machine, RegisterFile, StepResult, StepResult::*,
     },
-    cpu_core::{Isa, IsaDatabase},
-    emucore::mem::{MemResult, MemoryIO},
+    emucore::mem::MemoryIO,
 };
 
-use trace::Trace;
-use wmsboard::{WmsBoard, *};
+use wmsboard::WmsBoard;
 pub type WmsMachine = Machine<WmsBoard, RegisterFile>;
 
 fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec<u8>> {
@@ -49,7 +47,6 @@ fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec
 }
 
 fn step(machine: &mut WmsMachine, num: usize) -> CpuResult<StepResult> {
-    use emu6800::cpu::{CpuState, StepResult::*};
 
     let mut ret: StepResult = Default::default();
 
@@ -63,14 +60,14 @@ fn step(machine: &mut WmsMachine, num: usize) -> CpuResult<StepResult> {
             Nmi(pc) => println!("NMI -> 0x{pc:04x}"),
             Step { pc, .. } => {
                 println!("{}", machine.regs);
-                let d = machine.diss(pc.into());
+                let d = machine.diss(pc);
 
                 if let Ok(d) = d {
                     println!("\n{d}");
                 } else {
                     println!(
                         "Unknown: {pc:04x} : {:02x}",
-                        machine.mem().inspect_byte(pc as usize).unwrap()
+                        machine.mem().inspect_byte(pc).unwrap()
                     );
                     break;
                 }

@@ -1,6 +1,5 @@
 use emu6800::{
-    cpu::{decoder::print_it, diss, CpuResult, Machine, RegisterFile, StepResult},
-    emucore,
+    cpu::RegisterFile,
     emucore::mem::MemoryIO
 };
 use super::WmsMachine;
@@ -19,7 +18,7 @@ impl WmsState {
         WmsState {
             cycle: m.cycle,
             sha1,
-            regs: m.regs.clone(),
+            regs: m.regs,
         }
     }
 }

@@ -1,9 +1,8 @@
 use super::pia::*;
 
-use emu6800::emucore::sha1::{Digest, Sha1};
-use emu6800::{
-    cpu::RegisterFile,
-    emucore::mem::{self, MemErrorTypes, MemResult, MemoryIO},
+use emu6800::emucore::{
+    mem::{self, MemErrorTypes, MemResult, MemoryIO},
+    sha1::{Digest, Sha1},
 };
 
 const ROM_BASE: u16 = 0xf800;
@@ -63,7 +62,7 @@ impl WmsBoard {
             panic!();
         }
 
-        for (i, b) in src.into_iter().enumerate() {
+        for (i, b) in src.iter().enumerate() {
             self.rom[i] = *b;
         }
 
@@ -75,7 +74,7 @@ impl WmsBoard {
             RAM_BASE..=RAM_LAST => self.read_ram_u8(addr.wrapping_sub(RAM_BASE)),
             PIA_BASE..=PIA_LAST => self.read_pia_u8(addr.wrapping_sub(PIA_BASE)),
             ROM_BASE..=ROM_LAST => self.read_rom_u8(addr.wrapping_sub(ROM_BASE)),
-            _ => return Err(MemErrorTypes::IllegalAddress(addr as usize)),
+            _ => Err(MemErrorTypes::IllegalAddress(addr as usize)),
         }
     }
 
@@ -84,7 +83,7 @@ impl WmsBoard {
             RAM_BASE..=RAM_LAST => self.write_ram_u8(addr.wrapping_sub(RAM_BASE), val),
             PIA_BASE..=PIA_LAST => self.write_pia_u8(addr.wrapping_sub(PIA_BASE), val),
             ROM_BASE..=ROM_LAST => self.write_rom_u8(addr.wrapping_sub(ROM_BASE), val),
-            _ => return Err(MemErrorTypes::IllegalAddress(addr as usize)),
+            _ => Err(MemErrorTypes::IllegalAddress(addr as usize)),
         }
     }
 
@@ -93,7 +92,7 @@ impl WmsBoard {
             RAM_BASE..=RAM_LAST => self.inspect_ram_u8(addr.wrapping_sub(RAM_BASE)),
             PIA_BASE..=PIA_LAST => self.inspect_pia_u8(addr.wrapping_sub(PIA_BASE)),
             ROM_BASE..=ROM_LAST => self.inspect_rom_u8(addr.wrapping_sub(ROM_BASE)),
-            _ => return Err(MemErrorTypes::IllegalAddress(addr as usize)),
+            _ => Err(MemErrorTypes::IllegalAddress(addr as usize)),
         }
     }
 
@@ -155,9 +154,9 @@ impl MemoryIO for WmsBoard {
     }
 
     fn update_sha1(&self, digest: &mut Sha1) {
-        digest.update(&self.ram);
-        digest.update(&self.ram);
-        digest.update(&self.pia.last_written);
+        digest.update(self.ram);
+        digest.update(self.ram);
+        digest.update(self.pia.last_written);
     }
 
     fn load_byte(&mut self, addr: usize) -> mem::MemResult<u8> {
