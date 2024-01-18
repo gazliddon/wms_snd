@@ -3,7 +3,8 @@ pub const PIA_SIZE: u16 = 0x4;
 pub const PIA_LAST: u16 = PIA_BASE.wrapping_add(PIA_SIZE).wrapping_sub(1);
 
 pub struct Pia {
-    last_written: [u8; 4],
+    pub last_written: [u8; 4],
+
 }
 
 impl Default for Pia {

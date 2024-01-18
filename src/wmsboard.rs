@@ -1,6 +1,10 @@
 use super::pia::*;
 
-use emu6800::emucore::mem::{self, MemErrorTypes, MemResult, MemoryIO};
+use emu6800::emucore::sha1::{Digest, Sha1};
+use emu6800::{
+    cpu::RegisterFile,
+    emucore::mem::{self, MemErrorTypes, MemResult, MemoryIO},
+};
 
 const ROM_BASE: u16 = 0xf800;
 const ROM_SIZE: u16 = 0x800;
@@ -26,7 +30,7 @@ impl Default for WmsBoard {
     }
 }
 
-impl WmsBoard { 
+impl WmsBoard {
     pub fn get_dac(&self) -> u8 {
         self.inspect_pia_u8(0).unwrap()
     }
@@ -37,10 +41,10 @@ impl WmsBoard {
     }
 
     pub fn inspect_pia_u8(&self, _addr: u16) -> MemResult<u8> {
-        Ok( self.pia.inspect((_addr & 0xff) as u8) )
+        Ok(self.pia.inspect((_addr & 0xff) as u8))
     }
     pub fn read_pia_u8(&mut self, _addr: u16) -> MemResult<u8> {
-        Ok( self.pia.read((_addr & 0xff) as u8) )
+        Ok(self.pia.read((_addr & 0xff) as u8))
     }
 
     pub fn write_pia_u8(&mut self, _addr: u16, _val: u8) -> MemResult<()> {
@@ -54,13 +58,12 @@ impl WmsBoard {
         Self::default()
     }
 
-
     pub fn upload_rom(&mut self, src: &[u8]) -> MemResult<()> {
         if src.len() > ROM_SIZE.into() {
             panic!();
         }
 
-        for (i,b) in src.into_iter().enumerate() {
+        for (i, b) in src.into_iter().enumerate() {
             self.rom[i] = *b;
         }
 
@@ -94,7 +97,6 @@ impl WmsBoard {
         }
     }
 
-
     pub fn inspect_ram_u8(&self, addr: u16) -> MemResult<u8> {
         Ok(self.ram[addr as usize])
     }
@@ -103,7 +105,6 @@ impl WmsBoard {
         Ok(self.rom[addr as usize])
     }
 
-
     pub fn read_ram_u8(&mut self, addr: u16) -> MemResult<u8> {
         Ok(self.ram[addr as usize])
     }
@@ -111,7 +112,6 @@ impl WmsBoard {
     pub fn read_rom_u8(&mut self, addr: u16) -> MemResult<u8> {
         Ok(self.rom[addr as usize])
     }
-
 
     pub fn write_ram_u8(&mut self, addr: u16, val: u8) -> MemResult<()> {
         self.ram[addr as usize] = val;
@@ -154,8 +154,10 @@ impl MemoryIO for WmsBoard {
         0..0x10000
     }
 
-    fn update_sha1(&self, _digest: &mut emu6800::emucore::sha1::Sha1) {
-        todo!()
+    fn update_sha1(&self, digest: &mut Sha1) {
+        digest.update(&self.ram);
+        digest.update(&self.ram);
+        digest.update(&self.pia.last_written);
     }
 
     fn load_byte(&mut self, addr: usize) -> mem::MemResult<u8> {

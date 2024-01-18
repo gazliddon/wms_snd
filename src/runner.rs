@@ -1,9 +1,17 @@
 use std::ops::RemAssign;
 
-use emu6800::cpu::CpuResult;
+use serde::de;
 
 use super::trace::Trace;
 use super::WmsMachine;
+use super::wmsboard;
+use emu6800::{
+    cpu::{
+        decoder::print_it, CpuResult, CpuState, Machine, RegisterFile, StepResult, StepResult::*,
+    },
+    cpu_core::{Isa, IsaDatabase},
+    emucore::mem::{MemResult, MemoryIO},
+};
 
 #[derive(Default)]
 pub enum Command {
@@ -18,14 +26,24 @@ pub enum Command {
 }
 
 pub struct Runner {
-    pub command: Command,
     pub trace: Trace,
     pub m: WmsMachine,
 }
 
+pub fn make_machine() -> WmsMachine {
+    let prog = include_bytes!("../resources/sg.snd");
+    let mut board = wmsboard::WmsBoard::new();
+    board.upload_rom(prog).unwrap();
+    let machine = WmsMachine::new(board, RegisterFile::default());
+    machine
+}
+
 impl Runner {
-    pub fn new() -> Self {
-        panic!()
+    pub fn new(m: WmsMachine) -> Self {
+        Self {
+            trace: Default::default(),
+            m
+        }
     }
     pub fn exec_command(&mut self, _c : &Command) -> CpuResult<()> {
         Ok(())

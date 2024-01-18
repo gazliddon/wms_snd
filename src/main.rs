@@ -2,36 +2,27 @@
 #![allow(unused_imports)]
 
 mod pia;
+mod trace;
 mod wmsboard;
+mod runner;
 
 use emu6800::{
-    cpu::{decoder::print_it, diss, CpuResult, Machine, RegisterFile, StepResult},
-    emucore,
+    cpu::{
+        decoder::print_it, CpuResult, CpuState, Machine, RegisterFile, StepResult, StepResult::*,
+    },
+    cpu_core::{Isa, IsaDatabase},
+    emucore::mem::{MemResult, MemoryIO},
 };
 
-use emucore::mem;
-use mem::{MemResult, MemoryIO};
+use trace::Trace;
 use wmsboard::{WmsBoard, *};
-
 pub type WmsMachine = Machine<WmsBoard, RegisterFile>;
 
-use emu6800::cpu_core::{Isa, IsaDatabase};
-
-pub struct Runner {
-    machine: WmsMachine,
-    cycle: usize,
-}
-
-fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec<u8>> { 
-    use emu6800::cpu::{CpuState, StepResult::*};
-
+fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec<u8>> {
     machine.cycle = 0;
     machine.reset();
 
-    // execute a 1000 instructions to init the board
-    for _ in 0..100 {
-        machine.step().expect("preliminary step");
-    }
+    step(machine,100)?;
 
     println!("{}", machine.regs);
 
@@ -39,12 +30,12 @@ fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec
     machine.irq = true;
 
     // Now capture num samples from the HW
-    let mut captured_sound : Vec<u8> = Vec::with_capacity(num);
+    let mut captured_sound: Vec<u8> = Vec::with_capacity(num);
 
     while captured_sound.len() < num {
         let ret = step(machine, 1).unwrap();
 
-        if let Step{cycles, ..} = ret {
+        if let Step { cycles, .. } = ret {
             let sound = machine.mem().get_dac();
             for _ in 0..cycles {
                 captured_sound.push(sound)
@@ -60,7 +51,7 @@ fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec
 fn step(machine: &mut WmsMachine, num: usize) -> CpuResult<StepResult> {
     use emu6800::cpu::{CpuState, StepResult::*};
 
-    let mut ret : StepResult = Default::default();
+    let mut ret: StepResult = Default::default();
 
     for _ in 0..num {
         let this_step = machine.step().unwrap();
@@ -78,7 +69,7 @@ fn step(machine: &mut WmsMachine, num: usize) -> CpuResult<StepResult> {
                     println!("\n{d}");
                 } else {
                     println!(
-                        "Uknown: {pc:04x} : {:02x}",
+                        "Unknown: {pc:04x} : {:02x}",
                         machine.mem().inspect_byte(pc as usize).unwrap()
                     );
                     break;
@@ -97,13 +88,8 @@ fn step(machine: &mut WmsMachine, num: usize) -> CpuResult<StepResult> {
 fn main() {
     use std::fs::File;
     use std::io::Write;
-    let prog = include_bytes!("../resources/sg.snd");
-    let mut board = wmsboard::WmsBoard::new();
-    board.upload_rom(prog).unwrap();
-
-    let mut machine = WmsMachine::new(board, RegisterFile::default());
-    let _ret = play_sample(&mut machine, 1024*1024, 1).expect("Playing sample");
+    let mut machine = runner::make_machine();
+    let _ret = play_sample(&mut machine, 1024 * 1024, 0x19).expect("Playing sample");
     let mut f = File::create("sg.pcm").unwrap();
-
     f.write_all(&_ret[0..]).expect("Writing file");
 }
