@@ -1,3 +1,6 @@
 /target
 /output
 .DS_Store
+cfg
+mame.ini
+ui.ini
