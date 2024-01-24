@@ -2,25 +2,24 @@
 #![allow(unused_imports)]
 
 mod pia;
+mod runner;
 mod trace;
 mod wmsboard;
-mod runner;
 
 use emu6800::{
-    cpu::{
-        CpuResult, Machine, RegisterFile, StepResult, StepResult::*,
-    },
+    cpu::{CpuResult, Machine, RegisterFile, StepResult, StepResult::*},
     emucore::mem::MemoryIO,
 };
 
 use wmsboard::WmsBoard;
+
 pub type WmsMachine = Machine<WmsBoard, RegisterFile>;
 
 fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec<u8>> {
     machine.cycle = 0;
     machine.reset();
 
-    step(machine,100)?;
+    step(machine, 100)?;
 
     println!("{}", machine.regs);
 
@@ -47,7 +46,6 @@ fn play_sample(machine: &mut WmsMachine, num: usize, sound: u8) -> CpuResult<Vec
 }
 
 fn step(machine: &mut WmsMachine, num: usize) -> CpuResult<StepResult> {
-
     let mut ret: StepResult = Default::default();
 
     for _ in 0..num {
